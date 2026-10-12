@@ -3,3 +3,4 @@
 *.crx
 *.pem
 defaults.local.js
+dist/

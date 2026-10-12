@@ -1,6 +1,16 @@
 # Softtab
 
-A neumorphic Chrome new tab page with a few modes:
+A calm, neumorphic Chrome new tab: weather, NYC subway times, radio and your links.
+
+<p align="center"><img src="docs/demo.gif" width="860" alt="Softtab: switching between Weather, Subway, Raindrop, Music and Work"></p>
+
+| | |
+|---|---|
+| ![Music: preset radio showing what's on air](docs/screenshots/music-dark.png) | ![Weather: clocks and live weather](docs/screenshots/weather-light.png) |
+| ![Subway: next trains and when to leave](docs/screenshots/subway-dark.png) | ![Raindrop: search and tags](docs/screenshots/raindrop-light.png) |
+| ![Work: a link board](docs/screenshots/work-dark.png) | ![Music in light mode](docs/screenshots/music-light.png) |
+
+## What's inside
 
 - **Weather**: clocks and live weather for a list of cities.
 - **Subway**: next NYC subway departures for saved trips (from/to station, walk time).
@@ -12,9 +22,10 @@ Tabs can be added, renamed, hidden or deleted from Settings → Tabs.
 
 ## Install
 
-1. Open `chrome://extensions` and turn on **Developer mode**.
-2. Click **Load unpacked** and pick this folder.
-3. After changing files, click the reload arrow on the Softtab card.
+1. Download the latest zip from [Releases](https://github.com/dtsbourg/softtab/releases) and unzip it, or clone this repo.
+2. Open `chrome://extensions` and turn on **Developer mode**.
+3. Click **Load unpacked** and pick the folder.
+4. After changing files, click the reload arrow on the Softtab card.
 
 There is no build step: the extension is plain HTML, CSS and JavaScript.
 
@@ -32,6 +43,12 @@ window.SOFTTAB_LOCAL_DEFAULTS = {
 ```
 
 Anything you change in the app is saved in Chrome and takes priority over these defaults.
+
+## Releasing
+
+1. Bump `version` in `manifest.json` and add an entry to [CHANGELOG.md](CHANGELOG.md).
+2. Run `scripts/package.sh` to build `dist/softtab-<version>.zip`.
+3. Commit, tag `v<version>`, push, and attach the zip to a GitHub release (or upload it to the Chrome Web Store).
 
 ## Files
 

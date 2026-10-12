@@ -1219,7 +1219,7 @@
       li.removeAttribute('data-id');
       li.style.cssText = `position:absolute;left:0;right:0;top:${top - listTop}px;pointer-events:none`;
       hitsEl.appendChild(li);
-      li.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.98)' }], { duration: 180, easing: 'ease-out' }).onfinish = () => li.remove();
+      li.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.98)' }], { duration: 110, easing: 'ease-in' }).onfinish = () => li.remove();
     });
     let entering = 0;
     nodes.forEach(li => {
