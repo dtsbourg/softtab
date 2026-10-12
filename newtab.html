@@ -66,6 +66,15 @@
             <kbd>E</kbd><span>Edit the selected preset</span>
           </div>
         </div>
+        <div class="setting">
+          <h2>Backup</h2>
+          <div class="row backup">
+            <button class="pill-btn" id="export-btn">Export</button>
+            <button class="pill-btn" id="import-btn">Import</button>
+            <input type="file" id="import-file" accept="application/json,.json" hidden>
+          </div>
+          <p class="msg" id="backup-msg" hidden></p>
+        </div>
       </div>
     </div>
   </header>

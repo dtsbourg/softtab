@@ -2079,6 +2079,41 @@
   sBtn.addEventListener('click', e => { e.stopPropagation(); togglePop(pop.hidden); });
   document.addEventListener('click', e => { if (!pop.hidden && !pop.contains(e.target)) togglePop(false); });
 
+  /* ---------- Backup ---------- */
+  // Exports what you've set up (not caches, and not the Raindrop token) as a JSON file; importing replaces it and reloads.
+  const BACKUP_KEYS = ['theme', 'cities', 'trips', 'boards', 'hiddenTabs', 'presets', 'favorites', 'pins', 'links.listen', 'yt.channels'];
+  const SYNCED_KEYS = new Set(BACKUP_KEYS.filter(k => k !== 'theme'));
+  function backupMsg(text, kind) {
+    const m = $('#backup-msg');
+    m.textContent = text; m.hidden = !text; m.className = 'msg' + (kind ? ' ' + kind : '');
+  }
+  $('#export-btn').addEventListener('click', () => {
+    const settings = { theme: themeSetting, cities, trips, boards, hiddenTabs, presets, favorites, pins, 'links.listen': linkGroups, 'yt.channels': ytChannels };
+    const version = hasChrome && chrome.runtime?.getManifest ? chrome.runtime.getManifest().version : '';
+    const blob = new Blob([JSON.stringify({ softtab: 1, version, exported: new Date().toISOString(), settings }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `softtab-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    backupMsg('');
+  });
+  $('#import-btn').addEventListener('click', () => $('#import-file').click());
+  $('#import-file').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    let data;
+    try { data = JSON.parse(await file.text()); } catch { return backupMsg('That file isn’t a Softtab backup', 'err'); }
+    if (data?.softtab !== 1 || typeof data.settings !== 'object') return backupMsg('That file isn’t a Softtab backup', 'err');
+    const keys = BACKUP_KEYS.filter(k => k in data.settings);
+    for (const k of keys) {
+      local.set('softtab.' + k, data.settings[k]);
+      if (SYNCED_KEYS.has(k)) await synced.set(k, data.settings[k]);
+    }
+    if (keys.includes('yt.channels')) local.del('softtab.yt.index');
+    location.reload();
+  });
+
   /* ---------- Keyboard ---------- */
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') togglePop(false);
