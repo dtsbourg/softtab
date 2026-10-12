@@ -65,7 +65,7 @@ Anything you change in the app is saved in Chrome and takes priority over these 
 
 ## Data sources
 
-No API keys are needed except a Raindrop test token, which is stored in the browser. Only Open-Meteo is granted at install; the other tabs ask Chrome for access to their service the first time they're used. See the [privacy policy](https://dtsbourg.github.io/softtab/privacy.html).
+No API keys are needed except a Raindrop test token, which is stored in the browser. Only Open-Meteo is granted at install; the other tabs ask Chrome for access to their service the first time they're used. See the [privacy policy](https://github.com/dtsbourg/softtab/blob/main/PRIVACY.md).
 
 - Weather and city search: [Open-Meteo](https://open-meteo.com)
 - Subway departures and alerts: [MTA GTFS-realtime feeds](https://api.mta.info)

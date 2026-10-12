@@ -10,7 +10,7 @@ Ready for the Chrome Web Store.
 - **YouTube** latest posts now come from YouTube's official RSS feed (long-form uploads, no Shorts) instead of the channel page.
 - **Backup**: export your setup to a JSON file from Settings and import it back.
 - **New icon**: a soft key, sized for the store, the extensions page and the toolbar.
-- [Privacy policy](https://dtsbourg.github.io/softtab/privacy.html) and store listing assets in `docs/`.
+- [Privacy policy](https://github.com/dtsbourg/softtab/blob/main/PRIVACY.md) and store listing assets in `docs/store/`.
 
 ## 0.1.0 · 2026-10-12
 

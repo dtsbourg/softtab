@@ -66,7 +66,7 @@ Leave every other category unticked. Then tick all three certifications:
 - I do not use or transfer user data for purposes that are unrelated to my item's single purpose.
 - I do not use or transfer user data to determine creditworthiness or for lending purposes.
 
-**Privacy policy URL:** https://dtsbourg.github.io/softtab/privacy.html
+**Privacy policy URL:** https://github.com/dtsbourg/softtab/blob/main/PRIVACY.md
 
 ## Distribution tab
 
