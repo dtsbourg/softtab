@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Softtab",
+  "version": "0.1.0",
+  "description": "A quiet new tab: weather, the subway, Raindrop, radio and work links.",
+  "chrome_url_overrides": { "newtab": "newtab.html" },
+  "permissions": ["storage", "favicon"],
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
+    "https://api-endpoint.mta.info/*",
+    "https://api.raindrop.io/*",
+    "https://www.youtube.com/*",
+    "https://soundcloud.com/*",
+    "https://feeds.soundcloud.com/*",
+    "https://api.mixcloud.com/*",
+    "https://www.mixcloud.com/*",
+    "https://www.nts.live/*",
+    "https://api.radiofrance.fr/*",
+    "https://api.kexp.org/*",
+    "https://de1.api.radio-browser.info/*"
+  ],
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  }
+}
