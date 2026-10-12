@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Softtab Privacy Policy</title>
+  <style>
+    :root { --bg: #edeeeb; --text: #1c1f1d; --muted: #5d625e; --line: rgba(28, 31, 29, .12); --accent: #2c6a4c; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #26282a; --text: #e7e9e5; --muted: #a2a7a2; --line: rgba(231, 233, 229, .12); --accent: #8fd1ad; } }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+    main { max-width: 680px; margin: 0 auto; padding: 56px 16px 80px; }
+    h1 { font-size: 28px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 4px; }
+    h2 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 40px 0 8px; }
+    .date { color: var(--muted); margin: 0 0 32px; }
+    a { color: var(--accent); }
+    ul { padding-left: 20px; }
+    li { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px 10px 0; border-top: 1px solid var(--line); }
+    th { font-weight: 600; white-space: nowrap; }
+    code { font-size: .9em; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Softtab Privacy Policy</h1>
+  <p class="date">Effective 12 October 2026</p>
+
+  <p>Softtab is a Chrome extension that replaces the new tab page. It has no server, no account, no analytics and no ads. The developer receives no data from it.</p>
+
+  <h2>What Softtab stores</h2>
+  <ul>
+    <li><strong>Your setup</strong>: cities, subway trips, link boards, hidden tabs, music presets, favorites, pins and theme. These are kept in Chrome's extension storage. If Chrome sync is on, Chrome syncs them between your own devices through your Google account.</li>
+    <li><strong>Your Raindrop token</strong>, if you add one. It stays in Chrome's local extension storage on this device and is never synced or exported.</li>
+    <li><strong>Recent results</strong> (weather, train times, bookmarks, latest posts), cached in the browser so the page opens quickly.</li>
+  </ul>
+  <p>Uninstalling Softtab deletes all of it. Settings → Backup can export your setup to a file you keep.</p>
+
+  <h2>Who Softtab talks to</h2>
+  <p>Your browser contacts these services directly, and only when you use the matching tab. Softtab asks Chrome for access to each one the first time it's needed, except Open-Meteo, which Weather uses from the start.</p>
+  <table>
+    <tr><th>Open-Meteo</th><td>Weather for your cities (their coordinates), and city names you type when adding a city.</td></tr>
+    <tr><th>MTA</th><td>Live subway feeds and service alerts. Whole lines are downloaded; your stations aren't sent.</td></tr>
+    <tr><th>Raindrop.io</th><td>Your token, your searches, and links you choose to save.</td></tr>
+    <tr><th>Radio France, NTS, KEXP</th><td>What's on air for stations in your presets.</td></tr>
+    <tr><th>YouTube, SoundCloud, Mixcloud, NTS</th><td>Public feeds of the channels in your presets, and titles of links you add to favorites. Requests to YouTube are made like a normal visit, so YouTube may see your usual YouTube cookies.</td></tr>
+    <tr><th>Radio Browser</th><td>Station names you type when programming a preset.</td></tr>
+  </table>
+  <p>Each service's own privacy policy applies to those requests. Link icons come from Chrome's local favicon cache, without a network request.</p>
+
+  <h2>What Softtab doesn't do</h2>
+  <ul>
+    <li>No tracking, analytics, ads or remote code.</li>
+    <li>No selling or sharing of data, and no use of it for anything but the features above.</li>
+    <li>No reading of the pages you visit or your browsing history.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>Questions or concerns: open an issue at <a href="https://github.com/dtsbourg/softtab/issues">github.com/dtsbourg/softtab</a>. If this policy changes, the new version will be posted here with a new date.</p>
+</main>
+</body>
+</html>

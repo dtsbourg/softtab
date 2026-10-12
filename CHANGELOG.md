@@ -2,6 +2,16 @@
 
 Versions follow [semantic versioning](https://semver.org). The version in `manifest.json` is the one Chrome shows.
 
+## 0.2.0 · 2026-10-12
+
+Ready for the Chrome Web Store.
+
+- **Site access per tab**: only Weather's service is granted at install. Subway, Raindrop and Music ask for theirs the first time they're used, with an Allow access button until then.
+- **YouTube** latest posts now come from YouTube's official RSS feed (long-form uploads, no Shorts) instead of the channel page.
+- **Backup**: export your setup to a JSON file from Settings and import it back.
+- **New icon**: a soft key, sized for the store, the extensions page and the toolbar.
+- [Privacy policy](https://dtsbourg.github.io/softtab/privacy.html) and store listing assets in `docs/`.
+
 ## 0.1.0 · 2026-10-12
 
 First public version.

@@ -18,7 +18,7 @@ A calm, neumorphic Chrome new tab: weather, NYC subway times, radio and your lin
 - **Music**: a preset radio that shows what's on air or a channel's latest posts.
 - **Link boards**: tabs of quick links grouped by category (Work, plus any you add).
 
-Tabs can be added, renamed, hidden or deleted from Settings → Tabs.
+Tabs can be added, renamed, hidden or deleted from Settings → Tabs, and Settings → Backup exports your setup to a file.
 
 ## Install
 
@@ -48,7 +48,8 @@ Anything you change in the app is saved in Chrome and takes priority over these 
 
 1. Bump `version` in `manifest.json` and add an entry to [CHANGELOG.md](CHANGELOG.md).
 2. Run `scripts/package.sh` to build `dist/softtab-<version>.zip`.
-3. Commit, tag `v<version>`, push, and attach the zip to a GitHub release (or upload it to the Chrome Web Store).
+3. Commit, tag `v<version>`, push, and attach the zip to a GitHub release.
+4. Upload the same zip to the Chrome Web Store. Listing copy and images are in [`docs/store/`](docs/store/listing.md).
 
 ## Files
 
@@ -64,13 +65,13 @@ Anything you change in the app is saved in Chrome and takes priority over these 
 
 ## Data sources
 
-No API keys are needed except a Raindrop test token, which is stored in the browser.
+No API keys are needed except a Raindrop test token, which is stored in the browser. Only Open-Meteo is granted at install; the other tabs ask Chrome for access to their service the first time they're used. See the [privacy policy](https://dtsbourg.github.io/softtab/privacy.html).
 
 - Weather and city search: [Open-Meteo](https://open-meteo.com)
 - Subway departures and alerts: [MTA GTFS-realtime feeds](https://api.mta.info)
 - Station directory for Music presets: [Radio Browser](https://www.radio-browser.info)
 - Now playing: Radio France (FIP), NTS, KEXP public APIs
-- Latest posts: YouTube channel pages, SoundCloud RSS, Mixcloud and NTS APIs
+- Latest posts: YouTube and SoundCloud RSS feeds, Mixcloud and NTS APIs
 - Bookmarks: [Raindrop.io API](https://developer.raindrop.io)
 
 ## Credits
