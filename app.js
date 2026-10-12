@@ -23,6 +23,37 @@
     async set(k, v) { if (!hasChrome) return local.set(k, v); try { await chrome.storage.local.set({ [k]: v }); } catch {} }
   };
 
+  /* ---------- Site access ---------- */
+  // Weather's sites come with the install. Other tabs ask for theirs the first time they're used.
+  const ACCESS = {
+    subway: ['https://api-endpoint.mta.info/*'],
+    raindrop: ['https://api.raindrop.io/*'],
+    youtube: ['https://www.youtube.com/*'],
+    music: ['https://api.radiofrance.fr/*', 'https://www.nts.live/*', 'https://api.kexp.org/*', 'https://www.youtube.com/*',
+      'https://soundcloud.com/*', 'https://feeds.soundcloud.com/*', 'https://api.mixcloud.com/*', 'https://www.mixcloud.com/*',
+      'https://de1.api.radio-browser.info/*']
+  };
+  const canAsk = hasChrome && !!chrome.permissions;
+  const access = {};  // group -> true/false, undefined until checked
+  async function checkAccess() {
+    await Promise.all(Object.keys(ACCESS).map(async g => {
+      try { access[g] = !canAsk || await chrome.permissions.contains({ origins: ACCESS[g] }); } catch { access[g] = false; }
+    }));
+  }
+  // Chrome only shows the prompt in response to a click or key press.
+  async function askAccess(g) {
+    if (access[g]) return true;
+    try { access[g] = await chrome.permissions.request({ origins: ACCESS[g] }); } catch { access[g] = false; }
+    if (access[g]) { await checkAccess(); onAccess(); }
+    return access[g];
+  }
+  const allowBtn = (g, cls = 'pill-btn') => `<button class="${cls}" data-allow="${g}">Allow access</button>`;
+  document.addEventListener('click', e => {
+    const b = e.target.closest?.('[data-allow]');
+    if (b) { e.stopPropagation(); askAccess(b.dataset.allow); }
+  }, true);
+  if (canAsk) ['onAdded', 'onRemoved'].forEach(ev => chrome.permissions[ev]?.addListener(() => checkAccess().then(onAccess)));
+
   /* ---------- Helpers ---------- */
   const HOME_TZ = 'America/New_York';
   function partsIn(tz, date = new Date()) {
@@ -340,7 +371,7 @@
   let subwayLoading = false;
   async function refreshSubway() {
     const t = curTrip();
-    if (!t || subwayLoading) return;
+    if (!t || subwayLoading || !access.subway) return;
     subwayLoading = true;
     try {
       const feeds = feedsFor([...new Set([...routesAt(t.from), ...routesAt(t.to)])]);
@@ -360,6 +391,7 @@
 
   let alertsRaw = [], alertsUpdated = 0;
   async function refreshAlerts() {
+    if (!access.subway) return;
     try {
       const r = await fetch(ALERTS_URL, { cache: 'no-store' });
       if (!r.ok) throw new Error(r.status);
@@ -441,7 +473,8 @@
       return `<li class="dep ${cls}">${bullet(d.r, 'sm')}
         <span class="dest">${esc(d.dest)}${hint ? `<span class="when-sub">${hint}</span>` : ''}</span>
         <span class="mins">${when}<span class="arr">${nyClock.format(d.at)}</span></span></li>`;
-    }).join('') || `<li class="empty">${subwayError ? 'MTA feed unavailable' : subway.updated[t.id] ? 'No trains in the feed' : 'Loading…'}</li>`;
+    }).join('') || (access.subway === false ? `<li class="empty connect"><span>Live trains come from the MTA</span>${allowBtn('subway')}</li>`
+      : `<li class="empty">${subwayError ? 'MTA feed unavailable' : subway.updated[t.id] ? 'No trains in the feed' : 'Loading…'}</li>`);
 
     const hb = $('.hero .bullet');
     if (next) {
@@ -814,7 +847,8 @@
   let pins = local.get('softtab.pins', []);  // [{ u, t, m, c, tags }], a snapshot so a pin survives its source
   const savePins = () => { local.set('softtab.pins', pins); synced.set('pins', pins); };
 
-  // YouTube: reads a channel's Videos page (YouTube's RSS feeds currently 404).
+  // YouTube: a channel's uploads feed without Shorts (the UULF playlist). A @handle is turned into
+  // the channel id once, from the canonical link on the channel page.
   function parseChannel(input) {
     const v = input.trim();
     let m = v.match(/channel\/(UC[\w-]{22})/) || v.match(/^(UC[\w-]{22})$/);
@@ -822,39 +856,33 @@
     m = v.match(/@([\w.-]+)/);
     return m ? '/@' + m[1] : null;
   }
-  function findVideos(root, max = 12) {
-    const out = [], stack = [root];
-    while (stack.length && out.length < max) {
-      const o = stack.pop();
-      if (!o || typeof o !== 'object') continue;
-      const l = o.lockupViewModel;
-      if (l && l.contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
-        const md = l.metadata?.lockupMetadataViewModel;
-        const parts = (md?.metadata?.contentMetadataViewModel?.metadataRows || []).flatMap(r => r.metadataParts || []).map(p => p.text?.content || '');
-        if (l.contentId && md?.title?.content) out.push({ id: l.contentId, title: md.title.content, age: parts.find(t => /ago$/.test(t)) || '' });
-        continue;
-      }
-      const v = o.videoRenderer;
-      if (v) {
-        if (v.videoId) out.push({ id: v.videoId, title: v.title?.runs?.[0]?.text || '', age: v.publishedTimeText?.simpleText || '' });
-        continue;
-      }
-      const vals = Array.isArray(o) ? o : Object.values(o);
-      for (let i = vals.length - 1; i >= 0; i--) stack.push(vals[i]);
-    }
-    return out;
-  }
-  async function fetchChannel(path) {
-    const r = await fetch('https://www.youtube.com' + path + '/videos', { credentials: 'include' });
+  let ytIds = local.get('softtab.yt.ids', {});
+  async function channelId(path) {
+    const m = path.match(/^\/channel\/(UC[\w-]{22})$/);
+    if (m) return m[1];
+    if (ytIds[path]) return ytIds[path];
+    const r = await fetch('https://www.youtube.com' + path, { credentials: 'include' });
     if (!r.ok) throw new Error(String(r.status));
     const html = await r.text();
-    const m = html.match(/ytInitialData\s*=\s*(\{[\s\S]+?\});\s*<\/script>/);
-    if (!m) throw new Error('parse');
-    const data = JSON.parse(m[1]);
-    return { name: data.metadata?.channelMetadataRenderer?.title || path.replace(/^\/@?/, ''), videos: findVideos(data) };
+    const id = (html.match(/<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[\w-]{22})"/) || html.match(/"externalId":"(UC[\w-]{22})"/) || [])[1];
+    if (!id) throw new Error('parse');
+    ytIds[path] = id; local.set('softtab.yt.ids', ytIds);
+    return id;
+  }
+  async function fetchChannel(path) {
+    const id = await channelId(path);
+    const r = await fetch('https://www.youtube.com/feeds/videos.xml?playlist_id=UULF' + id.slice(2), { cache: 'no-store' });
+    if (!r.ok) throw new Error(String(r.status));
+    const doc = new DOMParser().parseFromString(await r.text(), 'text/xml');
+    const kid = (el, tag) => [...el.children].find(c => c.tagName === tag)?.textContent || '';
+    const author = [...doc.documentElement.children].find(c => c.tagName === 'author');
+    const videos = [...doc.documentElement.children].filter(c => c.tagName === 'entry').slice(0, 12)
+      .map(e => ({ id: kid(e, 'yt:videoId'), title: kid(e, 'title'), at: Date.parse(kid(e, 'published')) || 0 }))
+      .filter(v => v.id);
+    return { name: (author && kid(author, 'name')) || path.replace(/^\/(channel\/)?@?/, ''), videos };
   }
   async function refreshYouTube(force = false) {
-    if (!ytChannels.length || (!force && Date.now() - ytIndex.at < 30 * 60e3)) return;
+    if (!ytChannels.length || !access.youtube || (!force && Date.now() - ytIndex.at < 30 * 60e3)) return;
     await Promise.all(ytChannels.map(async ch => {
       try { ytIndex.items[ch.path] = (await fetchChannel(ch.path)).videos; } catch {}
     }));
@@ -865,6 +893,7 @@
 
   // Raindrop (token lives in Settings)
   async function rd(path) {
+    if (!access.raindrop) throw new Error('access');
     const r = await fetch('https://api.raindrop.io/rest/v1' + path, { headers: { Authorization: 'Bearer ' + rdToken } });
     if (r.status === 401) throw new Error('auth');
     if (!r.ok) throw new Error(String(r.status));
@@ -912,7 +941,7 @@
     runSearch();
   }
   async function refreshRaindrop(force = false) {
-    if (!rdToken || (!force && Date.now() - rdIndex.at < 10 * 60e3)) return;
+    if (!rdToken || !access.raindrop || (!force && Date.now() - rdIndex.at < 10 * 60e3)) return;
     try {
       const [roots, kids] = await Promise.all([rd('/collections'), rd('/collections/childrens')]);
       const cols = [...roots.items, ...kids.items].map(c => ({ id: c._id, title: c.title, count: c.count || 0 }));
@@ -929,13 +958,16 @@
     $('#raindrop-token').focus();
   }
   function syncRaindropState() {
-    $('.mode-btn[data-mode="raindrop"]')?.classList.toggle('warn', !rdToken);
+    const off = !rdToken || access.raindrop === false;
+    $('.mode-btn[data-mode="raindrop"]')?.classList.toggle('warn', off);
     renderTabList();
     if (!rdToken) showRdMsg('Not connected', 'warn');
-    else if ($('#raindrop-msg').textContent === 'Not connected') showRdMsg('', false);
+    else if (access.raindrop === false) showRdMsg('Needs access to Raindrop', 'warn');
+    else if (/^(Not connected|Needs access)/.test($('#raindrop-msg').textContent)) showRdMsg('', false);
   }
   $('#raindrop-form').addEventListener('submit', async e => {
     e.preventDefault();
+    if ($('#raindrop-token').value.trim()) await askAccess('raindrop');
     rdToken = $('#raindrop-token').value.trim();
     await secret.set('raindropToken', rdToken);
     syncRaindropState();
@@ -960,7 +992,7 @@
       linkGroups.forEach((g, gi) => g.items.forEach((it, i) =>
         out.push({ id: `l:${gi}:${i}:${it.u}`, src: 'link', gi, i, title: it.n, url: it.u, cat: g.g, tags: [], meta: host(it.u) })));
       ytChannels.forEach(ch => (ytIndex.items[ch.path] || []).forEach(v =>
-        out.push({ id: 'y:' + v.id, src: 'youtube', path: ch.path, channel: ch.name, title: v.title, url: 'https://www.youtube.com/watch?v=' + v.id, cat: 'Videos', tags: [ch.name], meta: ch.name + (v.age ? ' · ' + v.age : '') })));
+        out.push({ id: 'y:' + v.id, src: 'youtube', path: ch.path, channel: ch.name, title: v.title, url: 'https://www.youtube.com/watch?v=' + v.id, cat: 'Videos', tags: [ch.name], meta: ch.name + (v.at ? ' · ' + ago(v.at) : v.age ? ' · ' + v.age : '') })));
     } else {
       const colName = new Map(rdIndex.cols.map(c => [c.id, c.title]));
       const remoteIds = new Set(remote.items.map(i => i.id));
@@ -1054,6 +1086,7 @@
       buildIndex();
       return;
     }
+    if (!(await askAccess('youtube'))) return;
     quickState = 'Looking up the channel…'; renderHits([]);
     try {
       const { name, videos } = await fetchChannel(q.path);
@@ -1206,6 +1239,9 @@
       if (scope === 'raindrop' && !rdToken) {
         empty.classList.add('connect');
         empty.innerHTML = '<span>Raindrop isn’t connected</span><button class="pill-btn" data-connect-rd>Add token</button>';
+      } else if (scope === 'raindrop' && access.raindrop === false) {
+        empty.classList.add('connect');
+        empty.innerHTML = `<span>Raindrop needs access</span>${allowBtn('raindrop')}`;
       } else empty.textContent = 'Nothing found';
       tail.push(empty);
     }
@@ -1329,7 +1365,7 @@
     const oembed = /(^|\.)youtube\.com$|^youtu\.be$/.test(h) ? 'https://www.youtube.com/oembed?format=json&url='
       : h === 'soundcloud.com' ? 'https://soundcloud.com/oembed?format=json&url='
       : /(^|\.)mixcloud\.com$/.test(h) ? 'https://www.mixcloud.com/oembed/?format=json&url=' : '';
-    if (oembed) {
+    if (oembed && access.music) {
       try { const d = await getJSON(oembed + encodeURIComponent(u)); if (d.title) return { t: d.title, s: d.author_name || '' }; } catch {}
     }
     return { t: h + new URL(u).pathname.replace(/\/$/, ''), s: '' };
@@ -1382,7 +1418,7 @@
   async function latest(p) {
     if (p.kind === 'youtube') {
       return (await fetchChannel(p.path)).videos.slice(0, 5)
-        .map(v => ({ t: v.title, u: 'https://www.youtube.com/watch?v=' + v.id, age: (v.age || '').replace(/\s*ago$/, '') }));
+        .map(v => ({ t: v.title, u: 'https://www.youtube.com/watch?v=' + v.id, age: ago(v.at) }));
     }
     if (p.kind === 'soundcloud') {
       const r = await fetch(`https://feeds.soundcloud.com/users/soundcloud:users:${p.uid}/sounds.rss`);
@@ -1406,7 +1442,7 @@
   }
   const inflight = new Set(), lastRetry = {};
   async function loadPreset(p, force = false) {
-    if (!p || p.kind === 'link') return;
+    if (!p || p.kind === 'link' || !access.music) return;
     const key = presetKey(p);
     if (inflight.has(key)) return;
     if (!radioCache[key] && p.kind !== 'live') {
@@ -1460,7 +1496,9 @@
     listen.removeAttribute('aria-disabled');
     const c = radioCache[presetKey(p)];
     let body = '';
-    if (p.kind === 'live') {
+    if (p.kind !== 'link' && access.music === false) {
+      body = `<div class="lcd-dim">No signal</div><div class="lcd-actions lcd-allow">${allowBtn('music', '')}</div>`;
+    } else if (p.kind === 'live') {
       const d = c?.data;
       const now = d?.line
         ? `<div class="lcd-now"><span class="line">${esc(d.line)}</span>${d.sub ? `<small>${esc(d.sub)}</small>` : ''}</div>`
@@ -1478,7 +1516,7 @@
         ? `<ol class="lcd-feed">${items.map((it, i) => `<li class="${i === feedSel ? 'on' : ''}"><a href="${esc(it.u)}"><span class="caret">›</span><span class="t">${esc(it.t)}</span><span class="age">${esc(it.age || '')}</span></a><button class="row-act${isFav(it.u) ? ' on' : ''}" data-star="${i}" aria-pressed="${isFav(it.u)}" aria-label="${isFav(it.u) ? 'Remove from' : 'Add to'} favorites">${STAR}</button></li>`).join('')}</ol>`
         : `<div class="lcd-dim">${c ? (c.error ? `Can’t reach ${KIND_LABEL[p.kind]}` : 'Nothing yet') : 'Loading…'}</div>`;
     }
-    const tag = p.kind === 'live' ? '<span class="air"></span>On air' : KIND_LABEL[p.kind];
+    const tag = p.kind === 'live' ? (access.music === false ? 'Off air' : '<span class="air"></span>On air') : KIND_LABEL[p.kind];
     lcd.innerHTML = `<div class="lcd-head"><div class="lcd-name">${esc(p.name)}</div><div class="lcd-tag">${tag}</div></div>${body}`;
     renderProgress();
   }
@@ -1695,6 +1733,7 @@
       res.innerHTML = `<li><button data-link class="on"><span>${esc(link.label)}</span><span class="w">${KIND_LABEL[link.kind]}</span></button></li>`;
       return;
     }
+    if (!access.music) { res.innerHTML = `<li>${allowBtn('music', 'on')}</li>`; return; }
     progTimer = setTimeout(async () => {
       try {
         const list = await getJSON('https://de1.api.radio-browser.info/json/stations/search?' +
@@ -1775,6 +1814,7 @@
     let src;
     if (link) {
       const label = $('span', link);
+      if (!['link', 'live'].includes(progLink.kind) && !(await askAccess('music'))) return;
       label.textContent = 'Looking it up…';
       try { src = await resolveSource(progLink); }
       catch { label.textContent = 'Couldn’t read that page'; return; }
@@ -1953,7 +1993,7 @@
       const icon = t.board
         ? `<button class="ico pick" data-pick-icon="${esc(m)}" aria-expanded="${iconPickFor === m}" aria-label="Change icon" title="Change icon">${t.icon}</button>`
         : `<span class="ico">${t.icon}</span>`;
-      const warn = m === 'raindrop' && !rdToken ? '<span class="row-dot" title="Not connected"></span>' : '';
+      const warn = m === 'raindrop' && (!rdToken || access.raindrop === false) ? '<span class="row-dot" title="Not connected"></span>' : '';
       const name = t.board
         ? `<input class="tab-name" data-rename="${esc(m)}" value="${esc(t.name)}" aria-label="Tab name" spellcheck="false">`
         : `<span class="name">${esc(t.name)}${warn}</span>`;
@@ -2063,9 +2103,21 @@
     rdToken = t;
     $('#raindrop-token').value = t;
     syncRaindropState();
-    if (mode === 'raindrop') buildIndex();
     if (mode === 'raindrop') { refreshRaindrop(); buildIndex(); }
   });
+  checkAccess().then(onAccess);
+  // Runs once access is known, and again whenever it changes.
+  function onAccess() {
+    syncRaindropState();
+    renderSubway(Date.now());
+    if (mode === 'subway') { refreshSubway(); refreshAlerts(); }
+    if (mode === 'raindrop') refreshRaindrop();
+    runSearch();
+    if (programming !== null) onProgInput();
+    else renderLcd();
+    if (mode === 'music') loadPreset(presets[presetIdx]);
+    refreshYouTube();
+  }
   refreshWeather();
 
   function tick() {

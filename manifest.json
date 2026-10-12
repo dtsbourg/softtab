@@ -7,7 +7,9 @@
   "permissions": ["storage", "favicon"],
   "host_permissions": [
     "https://api.open-meteo.com/*",
-    "https://geocoding-api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*"
+  ],
+  "optional_host_permissions": [
     "https://api-endpoint.mta.info/*",
     "https://api.raindrop.io/*",
     "https://www.youtube.com/*",
